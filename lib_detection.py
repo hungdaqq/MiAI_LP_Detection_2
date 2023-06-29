@@ -136,8 +136,8 @@ def reconstruct(I, Iresized, Yr, lp_threshold):
     side = ((208 + 40)/2)/net_stride
 
     # one line and two lines license plate size
-    one_line = (470, 110)
-    two_lines = (280, 200)
+    one_line = (640, 150)
+    two_lines = (640, 500)
 
     Probs = Yr[..., 0]
     Affines = Yr[..., 2:]
@@ -184,19 +184,18 @@ def reconstruct(I, Iresized, Yr, lp_threshold):
     print(final_labels_frontal)
 
     # LP size and type
-    out_size, lp_type = (two_lines, 2) if ((final_labels_frontal[0].wh()[0] / final_labels_frontal[0].wh()[1]) < 1.7) else (one_line, 1)
+    out_size, lp_type = (one_line, 1)
 
     TLp = []
     if len(final_labels):
+        out_size, lp_type = (two_lines, 2) if ((final_labels_frontal[0].wh()[0] / final_labels_frontal[0].wh()[1]) < 2.8) else (one_line, 1)
         final_labels.sort(key=lambda x: x.prob(), reverse=True)
         for _, label in enumerate(final_labels):
             t_ptsh = getRectPts(0, 0, out_size[0], out_size[1])
             ptsh = np.concatenate((label.pts * getWH(I.shape).reshape((2, 1)), np.ones((1, 4))))
             H = find_T_matrix(ptsh, t_ptsh)
-
             Ilp = cv2.warpPerspective(I, H, out_size, borderValue=0)
             TLp.append(Ilp)
-    print(final_labels)
     return final_labels, TLp, lp_type
 
 def detect_lp(model, I, max_dim, lp_threshold):
@@ -221,8 +220,6 @@ def detect_lp(model, I, max_dim, lp_threshold):
 
     # Remove các chiều =1 của Yr
     Yr = np.squeeze(Yr)
-
-    print(Yr.shape)
 
     # Tái tạo và trả về các biến gồm: Nhãn, Ảnh biến số, Loại biển số (1: dài: 2 vuông)
     L, TLp, lp_type = reconstruct(I, Iresized, Yr, lp_threshold)

@@ -1,37 +1,55 @@
-
 import cv2
+from glob import glob
 from lib_detection import load_model, detect_lp, im2single
+from os.path import splitext, basename
 
-# Đường dẫn ảnh, các bạn đổi tên file tại đây để thử nhé
-img_path = "test/xemay.jpg"
+input_dir  = '/home/hung/Downloads/GreenParking/'
+output_dir = '/home/hung/Downloads/data/greenparking/'
 
-# Load model LP detection
-wpod_net_path = "wpod-net_update1.json"
+# cap = cv2.VideoCapture('/home/hung/Downloads/test.MOV')
+
+# if (cap.isOpened()== False): 
+#   print("Error opening video stream or file")
+
+
+wpod_net_path = 'wpod-net_update1.json'
 wpod_net = load_model(wpod_net_path)
 
-# Đọc file ảnh đầu vào
-Ivehicle = cv2.imread(img_path)
-cv2.imshow("Anh goc",Ivehicle)
-cv2.waitKey(0)
+# while(cap.isOpened()):
+#     ret, Ivehicle = cap.read()
+#     if ret == True:
+#         cv2.imshow('Frame',Ivehicle)
+#         # Ivehicle = cv2.imread(frame)
+#         ratio = float(max(Ivehicle.shape[:2]))/min(Ivehicle.shape[:2])
+#         side  = int(ratio*288.)
+#         bound_dim = min(side + (side%(2**4)),608)
+#         Llp, LpImgs, lp_type = detect_lp(wpod_net, im2single(Ivehicle), bound_dim, lp_threshold=0.5)
+#         if (len(LpImgs)):
+#             Ilp = LpImgs[0]
+#             print(Ilp.shape)
+#             Ilp = cv2.cvtColor(Ilp, cv2.COLOR_BGR2GRAY)
+#             Ilp = cv2.cvtColor(Ilp, cv2.COLOR_GRAY2BGR)
+#         if cv2.waitKey(25) & 0xFF == ord('q'):
+#             break
+#     else: 
+#         break
+ 
+# cap.release()
+# cv2.destroyAllWindows()
 
+imgs_paths = glob('%s/*.jpg' % input_dir)
+print('Searching for license plates using WPOD-NET')
 
-# Kích thước lớn nhất và nhỏ nhất của 1 chiều ảnh
-Dmax = 608
-Dmin = 288
+for i,img_path in enumerate(imgs_paths):
+    bname = splitext(basename(img_path))[0]
+    Ivehicle = cv2.imread(img_path)
+    ratio = float(max(Ivehicle.shape[:2]))/min(Ivehicle.shape[:2])
+    side  = int(ratio*288.)
+    bound_dim = min(side + (side%(2**4)),608)
+    Llp , LpImgs, lp_type = detect_lp(wpod_net, im2single(Ivehicle), bound_dim, lp_threshold=0.5)
+    if (len(LpImgs)):
+        Ilp = LpImgs[0]
+        # Ilp = cv2.cvtColor(Ilp, cv2.COLOR_BGR2GRAY)
+        # Ilp = cv2.cvtColor(Ilp, cv2.COLOR_GRAY2BGR)
 
-# Lấy tỷ lệ giữa W và H của ảnh và tìm ra chiều nhỏ nhất
-ratio = float(max(Ivehicle.shape[:2])) / min(Ivehicle.shape[:2])
-side = int(ratio * Dmin)
-bound_dim = min(side, Dmax)
-
-_ , LpImg, lp_type = detect_lp(wpod_net, im2single(Ivehicle), bound_dim, lp_threshold=0.5)
-
-
-if (len(LpImg)):
-
-    # Xử lý đọc biển đầu tiên, các bạn có thẻ sửa code để detect all biển số
-
-    cv2.imshow("Bien so", cv2.cvtColor(LpImg[0],cv2.COLOR_RGB2BGR ))
-    cv2.waitKey()
-
-cv2.destroyAllWindows()
+        cv2.imwrite('%s/%s_lp.png' % (output_dir,bname),Ilp*255.)
